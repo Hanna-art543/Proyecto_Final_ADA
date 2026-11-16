@@ -5,6 +5,15 @@ import { selectDiscoverySongs } from '../algorithms/discovery.js'
 const EMPTY_AFFINITIES = Object.freeze({})
 const EMPTY_IDS = Object.freeze([])
 
+/**
+ * @param {{
+ *   styles?: object[],
+ *   affinityBySongId?: Map|object,
+ *   excludedSongIds?: Iterable<string|number>,
+ *   limit?: number,
+ *   onSelect?: (song: object) => void
+ * }} props
+ */
 export default function DiscoverSomethingNew({
   styles = [],
   affinityBySongId = EMPTY_AFFINITIES,
@@ -19,8 +28,6 @@ export default function DiscoverSomethingNew({
     excludedSongIds,
   ), [affinityBySongId, excludedSongIds, limit, styles])
 
-  if (discoveries.length === 0) return null
-
   return (
     <section className="discover" aria-labelledby="discover-title">
       <div className="graph-section-heading">
@@ -30,6 +37,9 @@ export default function DiscoverSomethingNew({
         </div>
         <p>Selección equilibrada entre afinidad y estilos distintos.</p>
       </div>
+      {discoveries.length === 0 && (
+        <p className="muted">No hay canciones disponibles para descubrir.</p>
+      )}
       <div className="discover__grid">
         {discoveries.map(({ song, affinity, style }) => (
           <button

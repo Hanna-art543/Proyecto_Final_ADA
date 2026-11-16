@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getRelatedSongs, resolveRelatedSongs } from '../services/graphService'
 
+/**
+ * @param {{
+ *   songId: string|number|null,
+ *   songs?: object[],
+ *   neighborData?: Map|object[]|object|null,
+ *   limit?: number,
+ *   onSelect?: (song: object) => void
+ * }} props
+ */
 export default function RelatedSongs({
   songId,
   songs = [],

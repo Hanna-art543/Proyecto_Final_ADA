@@ -35,8 +35,9 @@ export async function fetchGraphSongs(client = supabase) {
       .order('id')
       .range(start, start + pageSize - 1)
     if (error) throw error
-    songs.push(...data)
-    if (data.length < pageSize) break
+    const page = data ?? []
+    songs.push(...page)
+    if (page.length < pageSize) break
   }
   return songs
 }
@@ -100,6 +101,9 @@ function summarizeStyle(songs, index) {
 
 export function clusterSongs(songs, neighborData, targetComponents = 6) {
   if (!Array.isArray(songs)) throw new TypeError('songs debe ser un arreglo')
+  if (!Number.isInteger(targetComponents) || targetComponents < 1) {
+    throw new RangeError('targetComponents debe ser un entero positivo')
+  }
   if (songs.length === 0) {
     return { graph: graphFromNeighbors([], []), styles: [], kruskalResult: null }
   }
@@ -136,12 +140,15 @@ export function resolveRelatedSongs(songId, songs, neighborData, limit = 5) {
   const normalizedId = String(songId)
   const songsById = new Map(songs.map((song) => [getSongId(song), song]))
   const neighbors = normalizeNeighborIndex(neighborData).get(normalizedId) ?? []
-  return neighbors.slice(0, limit).map((neighbor) => ({
-    ...songsById.get(neighbor.songId),
-    songId: neighbor.songId,
-    similarity: neighbor.similarity,
-    distance: neighbor.distance,
-  }))
+  return neighbors.slice(0, limit).map((neighbor) => {
+    const song = songsById.get(neighbor.songId)
+    return song ? {
+      ...song,
+      songId: neighbor.songId,
+      similarity: neighbor.similarity,
+      distance: neighbor.distance,
+    } : null
+  }).filter(Boolean)
 }
 
 export async function getRelatedSongs(songId, {

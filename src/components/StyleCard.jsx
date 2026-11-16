@@ -12,6 +12,13 @@ function strongestFeatures(centroid = {}) {
     .slice(0, 2)
 }
 
+/**
+ * @param {{
+ *   style: {id: string, name: string, songCount: number, centroid: object, songs: object[]},
+ *   active?: boolean,
+ *   onSelect?: (style: object) => void
+ * }} props
+ */
 export default function StyleCard({ style, active = false, onSelect }) {
   if (!style) return null
 
