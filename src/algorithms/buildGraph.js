@@ -8,8 +8,6 @@ export const MUSIC_FEATURES = [
   'valence',
 ]
 
-const FEATURE_CENTER = 0.5
-
 export function getSongId(song) {
   const id = song?.external_id ?? song?.externalId ?? song?.id
   return id === undefined || id === null ? null : String(id)
@@ -24,9 +22,43 @@ export function hasMusicFeatures(song) {
   })
 }
 
-function toCenteredVector(song) {
+function validUniqueSongs(songs) {
+  const validSongs = []
+  const seen = new Set()
+  for (const song of songs) {
+    const songId = getSongId(song)
+    if (songId === null || seen.has(songId) || !hasMusicFeatures(song)) continue
+    seen.add(songId)
+    validSongs.push({ songId, song })
+  }
+  return validSongs
+}
+
+/** Calcula la media real de cada característica sobre el catálogo utilizable. */
+export function calculateCatalogFeatureMeans(songs) {
+  if (!Array.isArray(songs)) throw new TypeError('songs debe ser un arreglo')
+  const validSongs = validUniqueSongs(songs)
+  if (validSongs.length === 0) return null
+
+  return Object.fromEntries(MUSIC_FEATURES.map((feature) => [
+    feature,
+    validSongs.reduce((sum, { song }) => sum + Number(song[feature]), 0) / validSongs.length,
+  ]))
+}
+
+function assertFeatureMeans(featureMeans) {
+  const valid = featureMeans && MUSIC_FEATURES.every((feature) => {
+    const value = featureMeans[feature]
+    return Number.isFinite(value) && value >= 0 && value <= 1
+  })
+  if (!valid) {
+    throw new TypeError('Se requieren las medias reales de las cinco características del catálogo')
+  }
+}
+
+function toCenteredVector(song, featureMeans) {
   if (!hasMusicFeatures(song)) return null
-  const values = MUSIC_FEATURES.map((feature) => Number(song[feature]) - FEATURE_CENTER)
+  const values = MUSIC_FEATURES.map((feature) => Number(song[feature]) - featureMeans[feature])
   const squaredMagnitude = values.reduce((sum, value) => sum + (value * value), 0)
   return { values, magnitude: Math.sqrt(squaredMagnitude) }
 }
@@ -43,13 +75,14 @@ function vectorSimilarity(left, right) {
 }
 
 /**
- * Coseno centrado en 0.5, punto medio de las características normalizadas.
- * Retorna un valor en [-1, 1]. Dos vectores neutros idénticos tienen 1; un
- * vector neutro frente a otro no neutro se considera sin afinidad (0).
+ * Coseno centrado en la media real de cada característica del catálogo.
+ * Retorna un valor en [-1, 1]. Dos vectores situados exactamente en el centro
+ * tienen 1; un vector central frente a otro no central se considera 0.
  */
-export function centeredCosineSimilarity(leftSong, rightSong) {
-  const left = toCenteredVector(leftSong)
-  const right = toCenteredVector(rightSong)
+export function centeredCosineSimilarity(leftSong, rightSong, featureMeans) {
+  assertFeatureMeans(featureMeans)
+  const left = toCenteredVector(leftSong, featureMeans)
+  const right = toCenteredVector(rightSong, featureMeans)
   return left && right ? vectorSimilarity(left, right) : null
 }
 
@@ -78,21 +111,19 @@ function keepNearest(list, songId, similarity, neighborCount) {
  * Calcula los K vecinos más cercanos para cada canción. Cada par se evalúa
  * una sola vez y alimenta las listas de ambos extremos.
  */
-export function calculateNearestNeighbors(songs, neighborCount = 5) {
+export function calculateNearestNeighbors(songs, neighborCount = 5, catalogFeatureMeans = null) {
   if (!Array.isArray(songs)) throw new TypeError('songs debe ser un arreglo')
   if (!Number.isInteger(neighborCount) || neighborCount < 0) {
     throw new RangeError('neighborCount debe ser un entero no negativo')
   }
 
-  const validSongs = []
-  const seen = new Set()
-  for (const song of songs) {
-    const songId = getSongId(song)
-    if (songId === null || seen.has(songId) || !hasMusicFeatures(song)) continue
-    seen.add(songId)
-    const vector = toCenteredVector(song)
-    validSongs.push({ songId, vector })
-  }
+  const catalogSongs = validUniqueSongs(songs)
+  const featureMeans = catalogFeatureMeans ?? calculateCatalogFeatureMeans(songs)
+  if (catalogSongs.length > 0) assertFeatureMeans(featureMeans)
+  const validSongs = catalogSongs.map(({ songId, song }) => ({
+    songId,
+    vector: toCenteredVector(song, featureMeans),
+  }))
 
   const result = new Map(validSongs.map(({ songId }) => [songId, []]))
   if (neighborCount === 0) return result
@@ -175,9 +206,11 @@ export function graphFromNeighbors(songs, neighborData) {
 }
 
 export function buildNearestNeighborGraph(songs, neighborCount = 5) {
-  const neighbors = calculateNearestNeighbors(songs, neighborCount)
+  const featureMeans = calculateCatalogFeatureMeans(songs)
+  const neighbors = calculateNearestNeighbors(songs, neighborCount, featureMeans)
   return {
     graph: graphFromNeighbors(songs, neighbors),
     neighbors,
+    featureMeans,
   }
 }

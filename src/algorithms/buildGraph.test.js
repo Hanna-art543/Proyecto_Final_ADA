@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   MUSIC_FEATURES,
   buildNearestNeighborGraph,
+  calculateCatalogFeatureMeans,
   calculateNearestNeighbors,
   centeredCosineSimilarity,
   graphFromNeighbors,
@@ -19,17 +20,39 @@ const close = song('close', [0.8, 0.7, 0.7, 0.8, 0.7])
 const opposite = song('opposite', [0.1, 0.2, 0.3, 0.1, 0.2])
 
 describe('centeredCosineSimilarity', () => {
-  it('usa las cinco características centradas en 0.5', () => {
-    expect(centeredCosineSimilarity(high, high)).toBeCloseTo(1)
-    expect(centeredCosineSimilarity(high, close)).toBeGreaterThan(0.95)
-    expect(centeredCosineSimilarity(high, opposite)).toBeCloseTo(-1)
+  it('centra cada característica en su promedio real del catálogo', () => {
+    const catalog = [
+      song('left', [0.5, 0.8, 0.6, 0.4, 0.7]),
+      song('right', [0.6, 0.9, 0.7, 0.5, 0.8]),
+      song('third', [0.1, 0.4, 0.2, 0, 0.3]),
+    ]
+    const featureMeans = calculateCatalogFeatureMeans(catalog)
+
+    expect(featureMeans.energy).toBeCloseTo(0.4)
+    expect(featureMeans.danceability).toBeCloseTo(0.7)
+    expect(featureMeans.acousticness).toBeCloseTo(0.5)
+    expect(featureMeans.instrumentalness).toBeCloseTo(0.3)
+    expect(featureMeans.valence).toBeCloseTo(0.6)
+    // Los desplazamientos de left y right respecto de la media son paralelos.
+    expect(centeredCosineSimilarity(catalog[0], catalog[1], featureMeans)).toBeCloseTo(1)
+  })
+
+  it('detecta un centro fijo o medias ausentes', () => {
+    const catalog = [high, close, opposite]
+    const featureMeans = calculateCatalogFeatureMeans(catalog)
+    expect(featureMeans.energy).toBeCloseTo(0.6)
+    expect(featureMeans.danceability).toBeCloseTo(0.5666666667)
+    expect(() => centeredCosineSimilarity(high, close)).toThrow(/medias reales/i)
   })
 
   it('controla vectores neutros y datos inválidos', () => {
-    const neutral = song('neutral', [0.5, 0.5, 0.5, 0.5, 0.5])
-    expect(centeredCosineSimilarity(neutral, neutral)).toBe(1)
-    expect(centeredCosineSimilarity(neutral, high)).toBe(0)
-    expect(centeredCosineSimilarity(high, { ...close, energy: 2 })).toBeNull()
+    const catalog = [high, close, opposite]
+    const featureMeans = calculateCatalogFeatureMeans(catalog)
+    const center = song('center', MUSIC_FEATURES.map((feature) => featureMeans[feature]))
+    expect(centeredCosineSimilarity(center, center, featureMeans)).toBe(1)
+    expect(centeredCosineSimilarity(center, high, featureMeans)).toBe(0)
+    expect(centeredCosineSimilarity(high, { ...close, energy: 2 }, featureMeans)).toBeNull()
+    expect(calculateCatalogFeatureMeans([])).toBeNull()
   })
 })
 

@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   MUSIC_FEATURES,
+  calculateCatalogFeatureMeans,
   calculateNearestNeighbors,
   serializeNeighbors,
 } from '../src/algorithms/buildGraph.js'
@@ -90,7 +91,7 @@ function normalizeSong(row) {
     external_id: row.external_id ?? row.track_id,
     title: row.title ?? row.track_name,
     artist: row.artist ?? row.artists,
-    genre: row.genre ?? row.track_genre,
+    genre: row.genre ?? row.track_genre ?? row.genre_id,
   }
 
   for (const feature of MUSIC_FEATURES) {
@@ -114,7 +115,9 @@ export function cleanCatalog(rows, maxPerGenre = 100) {
     const validFeatures = MUSIC_FEATURES.every((feature) => (
       Number.isFinite(song[feature]) && song[feature] >= 0 && song[feature] <= 1
     ))
-    if (id === undefined || id === null || seen.has(String(id)) || !validFeatures) continue
+    if (!id || !song.title || !song.artist || !song.genre || seen.has(String(id)) || !validFeatures) {
+      continue
+    }
     if ((genreCounts.get(genre) ?? 0) >= maxPerGenre) continue
 
     seen.add(String(id))
@@ -137,7 +140,6 @@ async function loadFromSupabase() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
   const key = process.env.SUPABASE_ANON_KEY
     ?? process.env.VITE_SUPABASE_ANON_KEY
-    ?? process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) {
     throw new Error(
       'Falta una entrada o las variables SUPABASE_URL/VITE_SUPABASE_URL y una clave de Supabase.',
@@ -145,7 +147,10 @@ async function loadFromSupabase() {
   }
 
   const { createClient } = await import('@supabase/supabase-js')
-  const client = createClient(url, key)
+  const accessToken = process.env.SUPABASE_ACCESS_TOKEN
+  const client = createClient(url, key, accessToken ? {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  } : undefined)
   const pageSize = 1000
   const songs = []
 
@@ -171,11 +176,16 @@ export async function generateNeighbors({
   const songs = input
     ? await loadFromFile(input, maxPerGenre)
     : await loadFromSupabase()
-  const neighbors = calculateNearestNeighbors(songs, neighborCount)
+  const featureMeans = calculateCatalogFeatureMeans(songs)
+  const neighbors = calculateNearestNeighbors(songs, neighborCount, featureMeans)
   const document = {
-    version: 1,
+    version: 2,
     generatedAt: new Date().toISOString(),
     features: MUSIC_FEATURES,
+    centering: {
+      method: 'catalog-feature-means',
+      featureMeans,
+    },
     neighborCount,
     songs: serializeNeighbors(neighbors),
   }

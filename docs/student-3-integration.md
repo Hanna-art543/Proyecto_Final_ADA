@@ -23,6 +23,11 @@ El servicio espera en Supabase la tabla `songs` con `external_id`, `title`,
 `acousticness`, `instrumentalness` y `valence`. Usa `external_id` como clave
 estable para enlazar Supabase con `public/data/neighbors.json`.
 
+La similitud resta a cada canción la media real del catálogo para cada una de
+las cinco características y aplica coseno sobre esos vectores centrados. El
+JSON declara esas medias en `centering.featureMeans`; los pesos del grafo son
+`1 - similarity`, por lo que Kruskal procesa primero las canciones más afines.
+
 El JSON incluido se generó desde `data/dataset.csv` de la rama del responsable
 de Supabase, aplicando el mismo límite de 100 canciones por género definido en
 su seed. Para regenerarlo desde un CSV/JSON local:
@@ -31,8 +36,11 @@ su seed. Para regenerarlo desde un CSV/JSON local:
 npm run build:graph -- --input data/dataset.csv
 ```
 
-Sin `--input`, el script pagina directamente la tabla `songs` y utiliza las
-variables de entorno de Supabase. Las credenciales no se escriben en el JSON.
+Sin `--input`, el script pagina directamente la tabla `songs` y utiliza la URL
+y la clave pública `anon` de Supabase. Si RLS limita la lectura a usuarios
+autenticados, admite un `SUPABASE_ACCESS_TOKEN` de usuario. No necesita ni
+admite como alternativa una clave `service_role`; ninguna credencial se escribe
+en el JSON. El modo CSV/JSON funciona sin configurar Supabase.
 
 ## Dependencias de otros algoritmos
 
