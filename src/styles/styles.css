@@ -1,0 +1,92 @@
+.styles-page {
+  --graph-panel: color-mix(in srgb, var(--surface) 88%, #202a25);
+  display: grid;
+  gap: 24px;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.styles-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: end;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 8px);
+  background:
+    radial-gradient(circle at 85% 15%, rgb(29 185 84 / 22%), transparent 34%),
+    var(--graph-panel);
+}
+
+.styles-hero h1 { font-size: clamp(1.8rem, 4vw, 3rem); }
+.styles-hero p { max-width: 650px; color: var(--muted); margin: 8px 0 0; line-height: 1.6; }
+.graph-eyebrow {
+  display: inline-block;
+  margin-bottom: 7px;
+  color: var(--accent);
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.styles-control { display: grid; gap: 7px; color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.styles-control select {
+  min-width: 150px;
+  padding: 10px 12px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.styles-state { padding: 28px; text-align: center; border: 1px dashed var(--border); border-radius: var(--radius); }
+.styles-notice { margin: 0; padding: 12px 16px; color: var(--muted); background: var(--surface); border-radius: var(--radius); }
+.styles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.style-card { min-width: 0; border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px); overflow: hidden; background: var(--surface); }
+.style-card--active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.style-card__button {
+  width: 100%; min-height: 190px; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 11px; padding: 20px; color: var(--text); text-align: left; background: transparent;
+}
+.style-card__button:hover { background: rgb(255 255 255 / 3%); }
+.style-card__eyebrow, .style-card__sample { color: var(--muted); font-size: .78rem; }
+.style-card__title { font-size: 1.08rem; }
+.style-card__features { display: flex; flex-wrap: wrap; gap: 6px; }
+.style-card__chip { padding: 5px 8px; border-radius: 999px; color: var(--accent); background: rgb(29 185 84 / 12%); font-size: .72rem; }
+.style-card__sample { margin-top: auto; line-height: 1.45; }
+
+.graph-section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: end; }
+.graph-section-heading h2 { margin: 0; font-size: 1.35rem; }
+.graph-section-heading p { max-width: 470px; margin: 0; color: var(--muted); font-size: .9rem; }
+.style-detail, .related-songs, .discover { display: grid; gap: 16px; padding-top: 4px; }
+.style-detail__songs { display: flex; gap: 8px; padding-bottom: 5px; overflow-x: auto; }
+.style-detail__songs button {
+  min-width: 170px; display: grid; gap: 5px; padding: 12px; color: var(--text); text-align: left;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.style-detail__songs button.is-active { border-color: var(--accent); }
+.style-detail__songs small, .related-song small, .discover-song small { color: var(--muted); }
+
+.related-songs__list { display: grid; gap: 8px; }
+.related-song {
+  display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 13px 15px;
+  color: var(--text); text-align: left; border: 1px solid var(--border); background: var(--surface);
+}
+.related-song__identity { display: grid; gap: 3px; }
+.related-song__score { color: var(--accent); font-size: .8rem; white-space: nowrap; }
+
+.discover__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.discover-song {
+  min-height: 155px; display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  padding: 17px; color: var(--text); text-align: left; border: 1px solid var(--border); background: var(--surface);
+}
+.discover-song__style { color: var(--accent); font-size: .72rem; font-weight: 700; }
+.discover-song__affinity { margin-top: auto; color: var(--muted); font-size: .75rem; }
+
+@media (max-width: 720px) {
+  .styles-hero, .graph-section-heading { align-items: stretch; flex-direction: column; }
+  .styles-control select { width: 100%; }
+  .styles-hero { padding: 20px; }
+}
