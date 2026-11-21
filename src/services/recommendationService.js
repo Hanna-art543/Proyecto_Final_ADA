@@ -1,19 +1,24 @@
 /**
  * Servicio de recomendaciones.
- * Por ahora solo funciones puras (todavía no importa supabase).
+ * Las funciones puras no dependen de Supabase; recommendForUser lo carga solo cuando se usa.
  */
 import { FEATURES, toVector } from '../algorithms/cosineSimilarity.js'
+import { knn } from '../algorithms/knn.js'
 
 /**
  * Peso de una interacción del usuario con una canción.
  * Ratings 1 o 2 se descartan (null).
  * w = 0.5·liked + 0.4·(rating/5) + 0.1·min(play_count, 10)/10
- * @param {{ rating?: number | null, liked?: boolean | null, play_count?: number | null }} interaction
- * @returns {number | null}
+ * Acepta `liked` (tests) o `is_favorite` (columna de Supabase).
  */
-export function interactionWeight({ rating = null, liked = false, play_count = 0 } = {}) {
+export function interactionWeight({
+  rating = null,
+  liked = false,
+  is_favorite = false,
+  play_count = 0,
+} = {}) {
   if (rating === 1 || rating === 2) return null
-  const likedPart = liked ? 1 : 0
+  const likedPart = liked || is_favorite ? 1 : 0
   const ratingPart = rating == null ? 0 : rating / 5
   const plays = play_count == null || play_count < 0 ? 0 : play_count
   const playsPart = (plays < 10 ? plays : 10) / 10
@@ -23,8 +28,6 @@ export function interactionWeight({ rating = null, liked = false, play_count = 0
 /**
  * Peso de las preferencias declaradas según cuántas interacciones contaron.
  * 1 sin interacciones → 0.3 con 10 o más.
- * @param {number} n
- * @returns {number}
  */
 export function computeBeta(n) {
   const m = n < 10 ? n : 10
@@ -33,10 +36,6 @@ export function computeBeta(n) {
 
 /**
  * Construye el vector de perfil del usuario: u = beta·p + (1 - beta)·h
- * @param {Record<string, any>} preferences fila de user_preferences
- * @param {Array<{ song_id: any, rating?: number | null, liked?: boolean | null, play_count?: number | null }>} interactions
- * @param {(id: any) => (Record<string, any> | null | undefined)} getSong búsqueda en la tabla hash del Integrante 1
- * @returns {number[]}
  */
 export function buildUserProfile(preferences, interactions, getSong) {
   const p = toVector(preferences)
@@ -66,4 +65,52 @@ export function buildUserProfile(preferences, interactions, getSong) {
   const u = new Array(dims)
   for (let i = 0; i < dims; i++) u[i] = beta * p[i] + (1 - beta) * h[i]
   return u
+}
+
+const NEUTRAL = Object.fromEntries(FEATURES.map((f) => [f, 0.5]))
+
+/** Preferencias completas: lo que falte (o sea null) se llena con 0.5. */
+function completePreferences(prefs) {
+  const out = { ...NEUTRAL }
+  if (prefs) for (const f of FEATURES) if (prefs[f] != null) out[f] = prefs[f]
+  return out
+}
+
+/** Canción del catálogo con sus features también como campos con nombre. */
+function withNamedFeatures(song) {
+  const named = Object.fromEntries(FEATURES.map((f, i) => [f, song.features?.[i]]))
+  return { ...song, ...named }
+}
+
+/**
+ * Top-K canciones para el usuario, con afinidad 0..1.
+ * @returns {Promise<{ coldStart: boolean, items: {song: object, score: number}[] }>}
+ */
+export async function recommendForUser(userId, k = 20) {
+  // imports dinámicos: así los tests de las funciones puras no cargan Supabase
+  const [{ getCatalog }, { getPreferences }, { getInteractions }] = await Promise.all([
+    import('./songService.js'),
+    import('./preferenceService.js'),
+    import('./interactionService.js'),
+  ])
+
+  const [catalog, preferences, interactions] = await Promise.all([
+    getCatalog(),
+    getPreferences(userId),
+    getInteractions(userId),
+  ])
+
+  const byId = new Map(catalog.map((s) => [s.id, withNamedFeatures(s)]))
+  const profile = buildUserProfile(completePreferences(preferences), interactions, (id) =>
+    byId.get(id)
+  )
+
+  const rated = new Set((interactions || []).filter((i) => i.rating != null).map((i) => i.song_id))
+  // si ya hay videos cargados, solo se recomienda lo que se puede reproducir
+  const onlyPlayable = catalog.some((s) => s.youtube_video_id)
+  const items = knn(profile, catalog, k, {
+    exclude: (s) => rated.has(s.id) || (onlyPlayable && !s.youtube_video_id),
+  })
+
+  return { coldStart: !preferences && !(interactions || []).length, items }
 }

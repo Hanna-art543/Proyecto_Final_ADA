@@ -1,12 +1,15 @@
 import { MinHeap } from './heap.js'
 import * as cosine from './cosineSimilarity.js'
 
-/** Similitud por defecto: la de cosineSimilarity.js (ajustar aquí si su firma cambia). */
+/** Similitud por defecto: la función exportada por cosineSimilarity.js (cualquiera sea su nombre). */
 function defaultSimilarity(a, b) {
-  const fn = cosine.cosineSimilarity ?? cosine.default
+  const fn =
+    cosine.cosineSimilarity ??
+    cosine.cosine ??
+    cosine.default ??
+    Object.entries(cosine).find(([name, v]) => typeof v === 'function' && name !== 'toVector')?.[1]
   return fn(a, b)
 }
-
 /** Vector de 5 características de una canción. */
 function defaultVector(song) {
   return song.features ?? song.vector

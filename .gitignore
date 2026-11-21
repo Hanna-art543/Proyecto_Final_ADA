@@ -26,3 +26,6 @@ dist-ssr
 # Secretos
 .env
 .env.local
+
+data/spotify-youtube.csv
+data/youtube-links.csv
