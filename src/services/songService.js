@@ -26,17 +26,6 @@ let byId = null
 /** @type {AVLTree<Song> | null} */
 let byTitle = null
 
-/** IDs de YouTube de public/data/youtube.json (opcional). */
-async function loadYoutubeIds() {
-  try {
-    const res = await fetch('/data/youtube.json')
-    if (!res.ok) return {}
-    const json = await res.json()
-    return json && typeof json === 'object' ? json : {}
-  } catch {
-    return {} // sin youtube.json la app sigue funcionando
-  }
-}
 
 /**
  * Carga el catálogo estático (una sola vez, sin paginar ni consultar Supabase).
@@ -50,21 +39,18 @@ export function getCatalog() {
         if (!res.ok) throw new Error(`No se pudo cargar el catálogo (${res.status})`)
         return res.json()
       })
-      .then(async (all) => {
-        const yt = await loadYoutubeIds()
-        for (const s of all) s.youtube_video_id = yt[s.id] ?? s.youtube_video_id ?? null
+    .then((all) => {
+      const playable = all.filter((s) => s.youtube_video_id)
+      const songs = playable.length >= MIN_PLAYABLE ? playable : all
 
-        const playable = all.filter((s) => s.youtube_video_id)
-        const songs = playable.length >= MIN_PLAYABLE ? playable : all
-
-        byId = new HashTable()
-        byTitle = new AVLTree()
-        for (const s of songs) {
-          byId.set(s.id, s)
-          byTitle.insert(normalize(s.title), s)
-        }
-        return songs
-      })
+      byId = new HashTable()
+      byTitle = new AVLTree()
+      for (const s of songs) {
+        byId.set(s.id, s)
+        byTitle.insert(normalize(s.title), s)
+      }
+      return songs
+    })
       .catch((err) => {
         catalogPromise = null // permite reintentar
         throw err
