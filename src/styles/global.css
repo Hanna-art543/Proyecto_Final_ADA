@@ -1,13 +1,10 @@
 /* =========================================================
    TuneMatch · Hoja de estilos
    Paleta: azul noche + lila + azul eléctrico
-
 /* ---------- 1. Tokens ---------- */
 
-/* Tema oscuro (por defecto) */
 :root {
   color-scheme: dark;
-
   /* Colores base */
   --bg: #0f1020;
   --surface: #171a33;
@@ -50,35 +47,6 @@
   --ease: 0.18s ease;
 }
 
-/* Tema claro: lavanda suave, sin blanco puro para no cansar la vista */
-:root[data-theme='light'] {
-  color-scheme: light;
-
-  --bg: #f3f2fb;
-  --surface: #fbfaff;
-  --surface-2: #eceaf9;
-  --border: #d9d5ef;
-  --text: #24264a;
-  --muted: #666a90;
-
-  --lila: #6d4fd6;
-  --azul: #2f6fdb;
-  --accent-text: #ffffff;
-  --accent-soft: rgba(109, 79, 214, 0.12);
-
-  --danger: #d6336c;
-  --star: #f59e0b;
-  --star-off: #d3cfea;
-  --fav: #db2777;
-
-  --player-bg: rgba(251, 250, 255, 0.88);
-  --auth-glow-1: rgba(109, 79, 214, 0.12);
-  --auth-glow-2: rgba(47, 111, 219, 0.10);
-
-  --shadow: 0 8px 24px rgba(60, 55, 120, 0.16);
-  --glow: 0 0 0 1px var(--lila), 0 0 18px rgba(109, 79, 214, 0.22);
-}
-
 /* ---------- 2. Base ---------- */
 * { box-sizing: border-box; }
 
@@ -92,7 +60,6 @@ body {
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h1 { margin: 0 0 8px; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
@@ -458,23 +425,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .song-player-video.is-large { left: 4%; right: 4%; }
 }
 
-/* ---------- 10. Selector de tema ---------- */
-.theme-toggle {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  font-size: 1.05rem;
-  line-height: 1;
-}
-.theme-toggle:hover:not(:disabled) { border-color: var(--lila); filter: none; }
-
-/* ---------- 11. Accesibilidad ---------- */
+/* ---------- 10. Accesibilidad ---------- */
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
