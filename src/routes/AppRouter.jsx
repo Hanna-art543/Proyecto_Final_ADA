@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import { useAuth } from '../hooks/useAuth'
 import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
- 
+import SongPlayer from '../components/SongPlayer'
 import Login from '../pages/Login'
 import Register from '../pages/Register'
 import Home from '../pages/Home'
@@ -13,7 +13,7 @@ import Favorites from '../pages/Favorites'
 import Playlists from '../pages/Playlists'
 import PlaylistDetail from '../pages/PlaylistDetail'
 import Profile from '../pages/Profile'
- 
+
 function ProtectedLayout() {
   const { user, loading } = useAuth()
   if (loading) return <p className="muted center">Cargando...</p>
@@ -25,23 +25,23 @@ function ProtectedLayout() {
         <Sidebar />
         <main className="content"><Outlet /></main>
       </div>
+      <SongPlayer />
     </div>
   )
 }
- 
+
 function PublicOnly({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <p className="muted center">Cargando...</p>
   return user ? <Navigate to="/" replace /> : children
 }
- 
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
         <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
- 
         <Route element={<ProtectedLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/explore" element={<Explore />} />
@@ -52,7 +52,6 @@ export default function AppRouter() {
           <Route path="/playlists/:id" element={<PlaylistDetail />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
- 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
